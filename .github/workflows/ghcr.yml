@@ -48,7 +48,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./my-registry
           file: ./my-registry/Dockerfile
           push: true
           platforms: linux/amd64
