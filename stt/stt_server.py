@@ -5,7 +5,7 @@ from faster_whisper import WhisperModel
 import uvicorn
 
 APP_HOST = os.getenv("STT_HOST", "0.0.0.0")
-APP_PORT = int(os.getenv("STT_PORT", "8001"))
+APP_PORT = int(os.getenv("STT_PORT", "8000"))
 
 # Model settings via env so you can tune without rebuilding image
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "small")  # tiny/base/small/medium/large-v3

@@ -1,4 +1,4 @@
-name: Build and push to GHCR
+name: Build and push STT image to GHCR
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: andrjucha7/runpod-stt
 
 jobs:
   build-and-push:
@@ -45,21 +45,11 @@ jobs:
             type=ref,event=tag
             type=sha
 
-      - name: Debug workspace
-        run: |
-          echo "GITHUB_SHA=$GITHUB_SHA"
-          echo "GITHUB_REF=$GITHUB_REF"
-          git rev-parse HEAD
-          pwd
-          ls -la
-          find . -maxdepth 3 -type d | sort
-          find . -maxdepth 3 -type f | sort      
-
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: ./my-registry
-          file: ./my-registry/Dockerfile
+          context: ./stt
+          file: ./stt/Dockerfile
           push: true
           platforms: linux/amd64
           tags: ${{ steps.meta.outputs.tags }}
