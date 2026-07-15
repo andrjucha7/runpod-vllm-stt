@@ -1,17 +1,21 @@
-name: Build and Push STT to GHCR
+name: Build and Push vLLM to GHCR
 
 on:
   push:
     branches: [main]
     paths:
-      - "Dockerfile.stt"
-      - "supervisord.stt.conf"
-      - "stt/**"
-      - ".github/workflows/ghcr-stt.yml"
+      - "vllm/Dockerfile.llm"
+      - "vllm/supervisord.llm.conf"
+      - "vllm/**"
+      - ".github/workflows/ghcr-vllm.yml"
   workflow_dispatch:
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: andrjucha7/runpod-vllm  
+
 jobs:
-  build-and-push-stt:
+  build-and-push-vllm:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -38,7 +42,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/runpod-stt
+          images: ghcr.io/${{ github.repository_owner }}/runpod-vllm
           tags: |
             type=raw,value=main
             type=sha
