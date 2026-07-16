@@ -9,12 +9,16 @@ app = FastAPI()
 
 HOST = os.getenv("STT_HOST", "0.0.0.0")
 PORT = int(os.getenv("STT_PORT", "8000"))
-# faster-whisper needs CTranslate2 weights: a size name ("large-v3") or a
-# converted repo ("Systran/faster-whisper-large-v3"). The openai/* repos are
-# transformers-format and will download but fail to load.
-WHISPER_MODEL = os.getenv("WHISPER_MODEL", "large-v3")
+# Defaults to the CTranslate2-converted Swiss German model baked in at
+# /models/stt by Dockerfile.stt. faster-whisper only loads CTranslate2 weights,
+# so an HF transformers repo id here (e.g. openai/whisper-large-v3) will
+# download and then fail to load — it must be converted first.
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "/models/stt")
 WHISPER_DEVICE = os.getenv("WHISPER_DEVICE", "cuda")
 WHISPER_COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "float16")
+# Whisper has no Swiss German ("gsw") token; gsw fine-tunes decode as German.
+# Set empty to let Whisper autodetect instead.
+WHISPER_LANGUAGE = os.getenv("WHISPER_LANGUAGE", "de") or None
 
 model_loaded = False
 model = None
@@ -34,7 +38,7 @@ async def startup_event():
         print(
             f"READY stt host={HOST} port={PORT} model={WHISPER_MODEL} "
             f"device={WHISPER_DEVICE} compute_type={WHISPER_COMPUTE_TYPE} "
-            f"load_seconds={time.time()-start:.2f}",
+            f"language={WHISPER_LANGUAGE} load_seconds={time.time()-start:.2f}",
             flush=True
         )
     except Exception as e:
@@ -68,7 +72,7 @@ async def transcribe(
         tmp_path = tmp.name
 
     try:
-        segments, info = model.transcribe(tmp_path)
+        segments, info = model.transcribe(tmp_path, language=WHISPER_LANGUAGE)
         text = "".join(segment.text for segment in segments).strip()
         latency_ms = int((time.time() - started) * 1000)
         print(

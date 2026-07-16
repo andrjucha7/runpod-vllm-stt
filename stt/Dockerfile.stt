@@ -1,3 +1,28 @@
+# ---- Stage 1: convert HF transformers weights to CTranslate2 ----
+# faster-whisper only loads CTranslate2 weights. Flurin17/whisper-large-v3-turbo-swiss-german
+# ships transformers-format safetensors, so it is converted here at build time
+# and baked into the runtime image — no download or conversion on boot.
+# Torch is the CPU wheel on purpose: the converter only reads the checkpoint,
+# it never executes the model, and the CUDA wheel would add gigabytes.
+FROM python:3.11-slim AS converter
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PIP_NO_CACHE_DIR=1
+
+ARG HF_MODEL=Flurin17/whisper-large-v3-turbo-swiss-german
+ARG CT2_QUANT=float16
+
+RUN python -m pip install --upgrade pip && \
+    python -m pip install torch --index-url https://download.pytorch.org/whl/cpu && \
+    python -m pip install ctranslate2==4.8.1 transformers
+
+RUN ct2-transformers-converter \
+      --model "${HF_MODEL}" \
+      --output_dir /models/stt \
+      --copy_files tokenizer.json preprocessor_config.json \
+      --quantization "${CT2_QUANT}"
+
+# ---- Stage 2: runtime ----
 # CUDA 12 + cuDNN 9: required by ctranslate2 >=4.5 (dropped cuDNN 8 support).
 # Do not move this to CUDA 13 — ctranslate2 has no CUDA 13 build.
 FROM nvidia/cuda:12.8.1-cudnn-runtime-ubuntu22.04
@@ -25,6 +50,9 @@ COPY requirements.txt /app/requirements.txt
 
 RUN python3 -m pip install --upgrade pip setuptools wheel && \
     python3 -m pip install -r /app/requirements.txt
+
+COPY --from=converter /models/stt /models/stt
+ENV WHISPER_MODEL=/models/stt
 
 COPY stt_server.py /app/stt_server.py
 COPY supervisord.stt.conf /etc/supervisord.conf
