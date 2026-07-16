@@ -1,1 +1,2 @@
-vllm
+# Extra runtime deps only. Do NOT list vllm/torch here — they come from the
+# base image, and an unpinned entry silently upgrades them past a tested pair.
