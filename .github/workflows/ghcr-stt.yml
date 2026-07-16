@@ -13,7 +13,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: andrjucha7/runpod-stt
+  IMAGE_NAME: andrjucha7/runpod-STT
 
 jobs:
   build-and-push:
