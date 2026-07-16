@@ -1,4 +1,7 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
 python-multipart==0.0.9
-faster-whisper==1.0.3
+faster-whisper==1.2.1
+# Pinned explicitly: faster-whisper allows ctranslate2 <5, and the cuDNN ABI
+# changed at 4.5 (8 -> 9). An unpinned resolve can silently break the base image.
+ctranslate2==4.8.1

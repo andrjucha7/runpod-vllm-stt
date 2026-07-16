@@ -1,4 +1,5 @@
 import os
+import tempfile
 import time
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
@@ -8,9 +9,12 @@ app = FastAPI()
 
 HOST = os.getenv("STT_HOST", "0.0.0.0")
 PORT = int(os.getenv("STT_PORT", "8000"))
-WHISPER_MODEL = os.getenv("WHISPER_MODEL", "openai/whisper-large-v3")
-WHISPER_DEVICE = os.getenv("WHISPER_DEVICE", "cpu")
-WHISPER_COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
+# faster-whisper needs CTranslate2 weights: a size name ("large-v3") or a
+# converted repo ("Systran/faster-whisper-large-v3"). The openai/* repos are
+# transformers-format and will download but fail to load.
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "large-v3")
+WHISPER_DEVICE = os.getenv("WHISPER_DEVICE", "cuda")
+WHISPER_COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "float16")
 
 model_loaded = False
 model = None
@@ -56,9 +60,12 @@ async def transcribe(
         raise HTTPException(status_code=503, detail="Model not ready")
 
     started = time.time()
-    tmp_path = f"/tmp/{file.filename}"
-    with open(tmp_path, "wb") as f:
-        f.write(await file.read())
+    # Never build the path from file.filename: it is client-controlled and a
+    # value like "../app/stt_server.py" would escape /tmp.
+    suffix = os.path.splitext(file.filename or "")[1]
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+        tmp.write(await file.read())
+        tmp_path = tmp.name
 
     try:
         segments, info = model.transcribe(tmp_path)
